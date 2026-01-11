@@ -179,7 +179,7 @@ export default function TodoApp() {
         </div>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Demo app to test React CI/CD deployment.</p>
+          <p>CI/CD deployment successful!</p>
         </div>
       </div>
     </div>
