@@ -1,45 +1,53 @@
----
-name: Deploy React App
+name: Deploy React App (Docker)
 on:
   push:
     branches:
       - main
       - dev
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-      - name: Install dependencies
-        run: npm ci
-      - name: Build React app
-        run: npm run build
-      - name: Deploy to Azure VM
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t react-app:${{ github.ref_name }} .
+
+      - name: Save Docker image
+        run: docker save react-app:${{ github.ref_name }} | gzip > react-app.tar.gz
+
+      - name: Copy Docker image to VM
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: dist/*
-          target: /tmp/react-app-build
-          strip_components: 1
-      - name: Move files and restart nginx
+          source: "react-app.tar.gz,docker-compose.yml,nginx-proxy.conf"
+          target: "/tmp/deploy"
+
+      - name: Deploy on VM
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-              sudo rm -rf /var/www/react-app/*
-              sudo mv /tmp/react-app-build/* /var/www/react-app/
+            cd /tmp/deploy
+            docker load < react-app.tar.gz
+            
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              docker stop react-app-main || true
+              docker rm react-app-main || true
+              docker run -d --name react-app-main --restart unless-stopped react-app:main
             else
-              sudo rm -rf /var/www/react-app-dev/*
-              sudo mv /tmp/react-app-build/* /var/www/react-app-dev/
+              docker stop react-app-dev || true
+              docker rm react-app-dev || true
+              docker run -d --name react-app-dev --restart unless-stopped react-app:dev
             fi
-            sudo systemctl restart nginx
+            
+            rm react-app.tar.gz
