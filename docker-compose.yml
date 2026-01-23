@@ -1,13 +1,13 @@
 services:
   react-app-main:
-    build: .
+    image: suyashdhakal1/react-app:main
     container_name: react-app-main
     restart: unless-stopped
     networks:
       - app-network
-    
+
   react-app-dev:
-    build: .
+    image: suyashdhakal1/react-app:dev
     container_name: react-app-dev
     restart: unless-stopped
     networks:
