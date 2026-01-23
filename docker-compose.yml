@@ -1,0 +1,32 @@
+services:
+  react-app-main:
+    image: suyashdhakal1/react-app:main
+    container_name: react-app-main
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  react-app-dev:
+    image: suyashdhakal1/react-app:dev
+    container_name: react-app-dev
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - app-network
+    depends_on:
+      - react-app-main
+      - react-app-dev
+
+networks:
+  app-network:
+    driver: bridge
