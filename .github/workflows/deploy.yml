@@ -38,4 +38,5 @@ jobs:
           script: |
             docker pull suyashdhakal1/react-app:${{ github.ref_name }}
             cd ~/react-app-deployment
+            docker-compose down
             docker-compose up -d
